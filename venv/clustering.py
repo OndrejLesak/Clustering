@@ -6,6 +6,8 @@ import time
 import math
 
 
+rd.seed(2)
+
 clusters = {}
 points = {}
 colors = [
@@ -87,7 +89,6 @@ def get_dist(c_1, c_2):
     return distance
 
 
-
 def get_mean_cords(cluster):
     x_sum = 0
     y_sum = 0
@@ -152,8 +153,17 @@ def init_clusters(centers, points):
         clusters[points[point].c][point] = points[point]
 
 
-def k_means(k, points, iter=15):
-    centers = {}
+def average_dist(center, points):
+    cnt = 0
+    sum = 0
+    for point in points:
+        sum += get_dist(center, point)
+        cnt += 1
+
+    return sum/cnt
+
+
+def k_means(k, points, iter=15, centers = {}):
 
     for i in range(k):
         while True:
@@ -181,12 +191,14 @@ def k_means(k, points, iter=15):
                 if new_center is not None:
                     centers[center].x = new_center[0]
                     centers[center].y = new_center[1]
+            else:
+                new_center = center
 
             new_centers[new_center] = centers[center]
 
         centers = new_centers.copy()
 
-    visualize_data(points, centers)
+    return points, centers
 
 
 def k_medoids(k, points, iter=10):
@@ -220,19 +232,51 @@ def k_medoids(k, points, iter=10):
 
         centers = new_centers.copy()
 
-    visualize_data(points, centers)
+    return points, centers
 
 
-def divisive(k):
-    pass
+def divisive(k, points):
+    color_index = 0
+    centers = {}
+    max_dist, max_cord = 0, None
+    key1, key2 = None, None
+
+    while True:
+        key1 = generateCoords()
+        key2 = generateCoords()
+        if key1 == key2:
+            continue
+        break
+
+    centers[key1] = Point(key1[0], key1[1], colors[color_index])
+    color_index += 1
+    centers[key2] = Point(key2[0], key2[1], colors[color_index])
+
+    points, centers = k_means(2, points, centers=centers)
+
+    # CALCULATE DISTANCES
+    for center in centers:
+        avg_dist = average_dist(center, clusters[centers[center].c])
+        if max_dist == 0:
+            max_dist = avg_dist
+            max_cord = center
+
+        elif avg_dist > max_dist:
+            max_dist = avg_dist
+            max_cord = center
+
+    return points, centers
+
 
 
 def main():
     t1 = time.time()
-    generate_points(20, 20000)
-    k_means(20, points, 10)
-    # k_medoids(20, points, 10)
-    # divisive(20)
+    generate_points(20, 10000)
+
+    # final_points, final_centers = k_means(20, points, 10)
+    # final_points, final_centers = k_medoids(20, points, 10)
+    final_points, final_centers = divisive(20, points)
+    visualize_data(final_points, final_centers)
     t2 = time.time()
 
     print(f'{t2-t1:.2f}s')
