@@ -1,15 +1,17 @@
 import matplotlib.pyplot as plt
+import matplotlib.markers as markers
 import random as rd
 import numpy as np
 import time
 import math
 
 
+clusters = {}
 points = {}
 colors = [
-    '#f44336', '#e81e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4',
+    '#ff0000', '#ffbe7d', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4',
     '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107',
-    '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b', '#000000'
+    '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b', '#ffc0cb'
 ]
 
 
@@ -61,10 +63,19 @@ def visualize_data(points, centers):
     x_arr = []
     y_arr = []
     colors = []
+    markers = []
     for val in data:
         x_arr.append(val.x)
         y_arr.append(val.y)
         colors.append(val.c)
+        markers.append('.')
+
+    center_data = list(centers.values())
+    for val in center_data:
+        x_arr.append(val.x)
+        y_arr.append(val.y)
+        colors.append('#000000')
+
 
     plt.scatter(x=x_arr, y=y_arr, c=colors)
     plt.show()
@@ -75,16 +86,15 @@ def get_dist(c_1, c_2):
     return distance
 
 
-def get_mean(center, points):
+def get_mean_cords(cluster):
     x_sum = 0
     y_sum = 0
     cnt = 0
 
-    for point in points:
-        if points[point].c == center.c:
-            x_sum += point[0]
-            y_sum += point[1]
-            cnt += 1
+    for point in cluster:
+        x_sum += point[0]
+        y_sum += point[1]
+        cnt += 1
 
     if cnt != 0:
         new_center = (x_sum/cnt, y_sum/cnt)
@@ -93,20 +103,36 @@ def get_mean(center, points):
         return None
 
 
-def get_distance():
-    pass
+def get_medoid(cluster):
+    shortest_dist = 0
+    shortest_cords = None
+
+    for point in cluster:
+        sum = 0
+        for other in cluster:
+            if point == other:
+                continue
+
+            sum += get_dist(point, other)
+
+        if (sum/len(cluster) < shortest_dist) or shortest_dist == 0:
+            shortest_dist = sum
+            shortest_cords = point
+
+    return shortest_cords
 
 
-def init_clusters(centers):
-    global points
+def init_clusters(centers, points):
+    global clusters
+    clusters = {}
 
-    center_cords = list(centers.keys())
-    closest_r = 0
-    closest_cord = None
     for point in points:
         closest_r = 0
         closest_cord = None
-        for center in center_cords:
+        if point in centers:
+            continue
+
+        for center in centers:
             distance = get_dist(point, center)
             if closest_r == 0:
                 closest_r = distance
@@ -119,49 +145,92 @@ def init_clusters(centers):
 
         points[point].c = centers[closest_cord].c
 
+        if centers[closest_cord].c not in clusters:
+            clusters[centers[closest_cord].c] = {}
+        clusters[points[point].c][point] = points[point]
 
-def k_means(k, type, iter=15):
+
+def k_means(k, iter=15):
     centers = {}
 
-    if type == 'centroid':
-        for i in range(k):
-            while True:
-                green_light = True
-                x, y = generateCoords()
-                key = (x, y)
+    for i in range(k):
+        while True:
+            green_light = True
+            x, y = generateCoords()
+            key = (x, y)
 
-                cent_cor = list(centers.keys()) if centers is not None else []
-                if key not in centers:
-                    for cor in cent_cor:
-                        if get_dist(key, cor) < 1000:
-                            green_light = False
-                            break
-
-                    if green_light:
-                        centers[key] = Point(x, y, colors[i])
+            if key not in centers:
+                for cor in centers:
+                    if get_dist(key, cor) < 1000:
+                        green_light = False
                         break
 
+                if green_light:
+                    centers[key] = Point(x, y, colors[i])
+                    break
+
     for i in range(iter):
-        init_clusters(centers)
-        visualize_data(points, centers)
+        init_clusters(centers, points)
 
         new_centers = {}
         for center in centers:
-            new_center = get_mean(centers[center], points)
-            if new_center is not None:
-                centers[center].x = new_center[0]
-                centers[center].y = new_center[1]
-                new_centers[new_center] = centers[center]
-            else:
-                new_centers[center] = centers[center]
+            if centers[center].c in clusters:
+                new_center = get_mean_cords(clusters[centers[center].c])
+                if new_center is not None:
+                    centers[center].x = new_center[0]
+                    centers[center].y = new_center[1]
+
+            new_centers[new_center] = centers[center]
 
         centers = new_centers.copy()
+
+    visualize_data(points, centers)
+
+
+def k_medoids(k, iter=10):
+    centers = {}
+    keys = list(points.keys())
+
+    for i in range(k):
+        while True:
+            green_light = True
+            j = rd.randint(0, len(points) - 1)
+            key = keys[j]
+
+            if key not in centers:
+                for cor in centers:
+                    if get_dist(key, cor) < 400:
+                        green_light = False
+                        break
+
+                if green_light:
+                    centers[key] = points[key]
+                    centers[key].c = colors[i]
+                    break
+
+    for i in range(iter):
+        init_clusters(centers, points)
+
+        new_centers = {}
+        for center in centers:
+            new_center = get_medoid(clusters[centers[center].c])
+            new_centers[new_center] = clusters[centers[center].c][new_center]
+
+        centers = new_centers.copy()
+
+    visualize_data(points, centers)
+
+
+def divisive(k):
+    pass
 
 
 def main():
     t1 = time.time()
-    generate_points(20, 20000)
-    k_means(20, 'centroid', 10)
+    generate_points(20, 7000)
+    # k_means(20, 10)
+    # k_medoids(20, 10)
+    divisive(20)
     t2 = time.time()
 
     print(f'{t2-t1:.2f}s')
