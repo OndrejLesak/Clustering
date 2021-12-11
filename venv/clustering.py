@@ -82,8 +82,10 @@ def visualize_data(points, centers):
 
 
 def get_dist(c_1, c_2):
-    distance = math.sqrt(pow(c_1[0] - c_2[0], 2) + pow(c_1[1] - c_2[1], 2))
+    # distance = math.sqrt(pow(c_1[0] - c_2[0], 2) + pow(c_1[1] - c_2[1], 2))
+    distance = abs(c_1[0] - c_2[0]) + abs(c_1[1] - c_2[1])
     return distance
+
 
 
 def get_mean_cords(cluster):
@@ -150,7 +152,7 @@ def init_clusters(centers, points):
         clusters[points[point].c][point] = points[point]
 
 
-def k_means(k, iter=15):
+def k_means(k, points, iter=15):
     centers = {}
 
     for i in range(k):
@@ -187,7 +189,7 @@ def k_means(k, iter=15):
     visualize_data(points, centers)
 
 
-def k_medoids(k, iter=10):
+def k_medoids(k, points, iter=10):
     centers = {}
     keys = list(points.keys())
 
@@ -227,10 +229,10 @@ def divisive(k):
 
 def main():
     t1 = time.time()
-    generate_points(20, 7000)
-    # k_means(20, 10)
-    # k_medoids(20, 10)
-    divisive(20)
+    generate_points(20, 20000)
+    k_means(20, points, 10)
+    # k_medoids(20, points, 10)
+    # divisive(20)
     t2 = time.time()
 
     print(f'{t2-t1:.2f}s')
