@@ -61,7 +61,7 @@ def generate_points(n, k):
             continue
 
 
-def visualize_data(points, centers):
+def visualize_data(points, centers, title, precision, time):
     data = list(points.values())
     x_arr = []
     y_arr = []
@@ -79,6 +79,8 @@ def visualize_data(points, centers):
         y_arr.append(val.y)
         colors.append('#000000')
 
+    plt.title(title)
+    plt.xlabel(f'Time: {time:.2f}s, Precision: {precision:.2f}%')
 
     plt.scatter(x=x_arr, y=y_arr, c=colors)
     plt.show()
@@ -183,8 +185,21 @@ def assign_colors(clusts):
     return clust
 
 
+def calculate_precision(centers, clusters):
+    correct = 0
+    all_clusts = 0
+    for center in centers:
+        if centers[center].cid in clusters:
+            if average_dist(center, clusters[centers[center].cid]) < 500:
+                correct += 1
+
+            all_clusts += 1
+
+    return (correct/all_clusts)*100
+
+
 ##################### ALGORITHMS #####################
-def k_means(k, points, iter=15, centers = {}):
+def k_means(k, points, iter=15, centers = {}, precision = False):
     global clusters
     if len(centers) == 0:
         for i in range(k):
@@ -223,6 +238,10 @@ def k_means(k, points, iter=15, centers = {}):
     clusters = assign_colors(clusters)
     for clust in clusters:
         points = merge_dict(points, clusters[clust])
+
+    if precision:
+        precision_value = calculate_precision(centers, clusters)
+        return points, centers, precision_value
 
     return points.copy(), centers.copy()
 
@@ -263,7 +282,9 @@ def k_medoids(k, points, iter=10):
     for clust in clusters:
         points = merge_dict(points, clusters[clust])
 
-    return points, centers
+    precision_value = calculate_precision(centers, clusters)
+
+    return points, centers, precision_value
 
 
 def divisive(k, points):
@@ -284,7 +305,7 @@ def divisive(k, points):
         centers[key2] = Point(key2[0], key2[1], index)
         index += 1
 
-        new_points, new_centers = k_means(2, points, centers=centers) # craetes 2 clusters
+        new_points, new_centers = k_means(2, points, centers=centers) # creates 2 clusters
         k -= 2
 
         asserted_clusters = clusters.copy()  # assert first clusters
@@ -306,8 +327,8 @@ def divisive(k, points):
             cluster_to_develop = asserted_clusters[centers[max_cord].cid].copy() # cluster we are dividing
 
             new_centers = {}
-            key1 = get_rand_point(cluster_to_develop) # 1st random point in cluster
-            key2 = get_rand_point(cluster_to_develop) # 2nd random point in cluster
+            key1 = get_rand_point(cluster_to_develop) # 1st random point from cluster
+            key2 = get_rand_point(cluster_to_develop) # 2nd random point from cluster
 
             while key1 == key2:
                 key2 = get_rand_point(points)
@@ -320,7 +341,6 @@ def divisive(k, points):
             new_points, new_centers = k_means(2, cluster_to_develop, centers=new_centers) # compute new clusters
 
             asserted_clusters.pop(centers[max_cord].cid)
-            colors.append(centers[max_cord].cid)
             centers.pop(max_cord)
 
             asserted_clusters = merge_dict(asserted_clusters, clusters)
@@ -333,22 +353,33 @@ def divisive(k, points):
         for clust in asserted_clusters:
             points = merge_dict(points, asserted_clusters[clust])
 
-        return points, centers
+        precision_value = calculate_precision(centers, asserted_clusters)
+
+        return points, centers, precision_value
     else:
         return points, centers
+
+
+def agglomerative(k, points):
+    pass
 
 
 def main():
     t1 = time.time()
     generate_points(20, 20000)
 
-    # final_points, final_centers = k_means(20, points, 10)
-    # final_points, final_centers = k_medoids(20, points, 10)
-    # final_points, final_centers = divisive(10, points)
-    visualize_data(final_points, final_centers)
+    title = 'Divisive Clustering'
+
+    # final_points, final_centers, precision = k_means(20, points, 10, precision=True)
+    # final_points, final_centers, precision = k_medoids(20, points, 10)
+    # final_points, final_centers, precision = divisive(20, points)
+    # final_points, final_centers = agglomerative(5, points)
     t2 = time.time()
 
+    visualize_data(final_points, final_centers, title, precision, t2-t1)
+
     print(f'{t2-t1:.2f}s')
+    print(f'Precision of the algorithm: {precision:.2f}%')
 
 
 if __name__ == '__main__':
