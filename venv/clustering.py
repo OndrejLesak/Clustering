@@ -164,7 +164,6 @@ def average_dist(center, points):
 
 
 def k_means(k, points, iter=15, centers = {}):
-
     for i in range(k):
         while True:
             green_light = True
@@ -181,9 +180,8 @@ def k_means(k, points, iter=15, centers = {}):
                     centers[key] = Point(x, y, colors[i])
                     break
 
+    init_clusters(centers, points)
     for i in range(iter):
-        init_clusters(centers, points)
-
         new_centers = {}
         for center in centers:
             if centers[center].c in clusters:
@@ -197,6 +195,7 @@ def k_means(k, points, iter=15, centers = {}):
             new_centers[new_center] = centers[center]
 
         centers = new_centers.copy()
+        init_clusters(centers, points)
 
     return points, centers
 
@@ -222,15 +221,15 @@ def k_medoids(k, points, iter=10):
                     centers[key].c = colors[i]
                     break
 
+    init_clusters(centers, points)
     for i in range(iter):
-        init_clusters(centers, points)
-
         new_centers = {}
         for center in centers:
             new_center = get_medoid(clusters[centers[center].c])
             new_centers[new_center] = clusters[centers[center].c][new_center]
 
         centers = new_centers.copy()
+        init_clusters(centers, points)
 
     return points, centers
 
@@ -271,11 +270,11 @@ def divisive(k, points):
 
 def main():
     t1 = time.time()
-    generate_points(20, 10000)
+    generate_points(20, 20000)
 
     # final_points, final_centers = k_means(20, points, 10)
-    # final_points, final_centers = k_medoids(20, points, 10)
-    final_points, final_centers = divisive(20, points)
+    final_points, final_centers = k_medoids(20, points, 10)
+    # final_points, final_centers = divisive(20, points)
     visualize_data(final_points, final_centers)
     t2 = time.time()
 
