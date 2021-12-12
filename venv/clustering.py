@@ -163,22 +163,32 @@ def average_dist(center, points):
     return sum/cnt
 
 
+def get_rand_point(points):
+    keys = list(points.keys())
+    i = rd.randint(0, len(keys)-1)
+    return keys[i]
+
+def merge_dict(dict1, dict2):
+    return {**dict1, **dict2}
+
+
 def k_means(k, points, iter=15, centers = {}):
-    for i in range(k):
-        while True:
-            green_light = True
-            x, y = generateCoords()
-            key = (x, y)
+    if len(centers) == 0:
+        for i in range(k):
+            while True:
+                green_light = True
+                x, y = generateCoords()
+                key = (x, y)
 
-            if key not in centers:
-                for cor in centers:
-                    if get_dist(key, cor) < 1000:
-                        green_light = False
+                if key not in centers:
+                    for cor in centers:
+                        if get_dist(key, cor) < 1000:
+                            green_light = False
+                            break
+
+                    if green_light:
+                        centers[key] = Point(x, y, colors[i])
                         break
-
-                if green_light:
-                    centers[key] = Point(x, y, colors[i])
-                    break
 
     init_clusters(centers, points)
     for i in range(iter):
@@ -197,7 +207,7 @@ def k_means(k, points, iter=15, centers = {}):
         centers = new_centers.copy()
         init_clusters(centers, points)
 
-    return points, centers
+    return points.copy(), centers.copy()
 
 
 def k_medoids(k, points, iter=10):
@@ -237,35 +247,67 @@ def k_medoids(k, points, iter=10):
 def divisive(k, points):
     color_index = 0
     centers = {}
-    max_dist, max_cord = 0, None
-    key1, key2 = None, None
+    asserted_clusters = {}
 
-    while True:
-        key1 = generateCoords()
-        key2 = generateCoords()
-        if key1 == key2:
-            continue
-        break
+    # RANDOM KEY
+    key1 = get_rand_point(points)
+    key2 = get_rand_point(points)
+
+    while key1 == key2:
+        key2 = get_rand_point(points)
 
     centers[key1] = Point(key1[0], key1[1], colors[color_index])
     color_index += 1
     centers[key2] = Point(key2[0], key2[1], colors[color_index])
+    color_index += 1
 
-    points, centers = k_means(2, points, centers=centers)
+    new_points, new_centers = k_means(2, points, centers=centers) # craetes 2 clusters
+    k -= 2
 
-    # CALCULATE DISTANCES
-    for center in centers:
-        avg_dist = average_dist(center, clusters[centers[center].c])
-        if max_dist == 0:
-            max_dist = avg_dist
-            max_cord = center
+    asserted_clusters = clusters.copy()  # assert first clusters
+    centers = new_centers.copy()
 
-        elif avg_dist > max_dist:
-            max_dist = avg_dist
-            max_cord = center
+    while k > 0:
+        max_dist, max_cord = 0, None
+
+        # CALCULATE DISTANCES
+        for center in centers:
+            avg_dist = average_dist(center, asserted_clusters[centers[center].c])
+            if max_dist == 0:
+                max_dist = avg_dist
+                max_cord = center
+            elif avg_dist > max_dist:
+                max_dist = avg_dist
+                max_cord = center
+
+        cluster_to_develop = asserted_clusters[centers[max_cord].c].copy() # cluster we are dividing
+
+        new_centers = {}
+        key1 = get_rand_point(cluster_to_develop) # 1st random point in cluster
+        key2 = get_rand_point(cluster_to_develop) # 2nd random point in cluster
+
+        while key1 == key2:
+            key2 = get_rand_point(points)
+
+        new_centers[key1] = Point(key1[0], key1[1], colors[color_index])
+        color_index += 1
+        new_centers[key2] = Point(key2[0], key2[1], colors[color_index])
+        color_index += 1
+
+        new_points, new_centers = k_means(2, cluster_to_develop, centers=new_centers) # compute new clusters
+
+        asserted_clusters.pop(centers[max_cord].c)
+        centers.pop(max_cord)
+
+        asserted_clusters = merge_dict(asserted_clusters, clusters)
+        centers = merge_dict(centers, new_centers)
+
+        k -= 1
+
+    for clust in asserted_clusters:
+        points = merge_dict(points, asserted_clusters[clust])
 
     return points, centers
-
 
 
 def main():
@@ -273,8 +315,8 @@ def main():
     generate_points(20, 20000)
 
     # final_points, final_centers = k_means(20, points, 10)
-    final_points, final_centers = k_medoids(20, points, 10)
-    # final_points, final_centers = divisive(20, points)
+    # final_points, final_centers = k_medoids(20, points, 10)
+    final_points, final_centers = divisive(20, points)
     visualize_data(final_points, final_centers)
     t2 = time.time()
 
