@@ -111,6 +111,7 @@ def get_mean_cords(cluster):
 def get_medoid(cluster):
     shortest_dist = 0
     shortest_cords = None
+    length = len(cluster)
 
     for point in cluster:
         sum = 0
@@ -120,7 +121,7 @@ def get_medoid(cluster):
 
             sum += get_dist(point, other)
 
-        if (sum/len(cluster) < shortest_dist) or shortest_dist == 0:
+        if (sum/length < shortest_dist) or shortest_dist == 0:
             shortest_dist = sum
             shortest_cords = point
 
@@ -331,7 +332,7 @@ def divisive(k, points):
             key2 = get_rand_point(cluster_to_develop) # 2nd random point from cluster
 
             while key1 == key2:
-                key2 = get_rand_point(points)
+                key2 = get_rand_point(cluster_to_develop)
 
             new_centers[key1] = Point(key1[0], key1[1], index)
             index += 1
@@ -366,14 +367,14 @@ def agglomerative(k, points):
 
 def main():
     t1 = time.time()
-    generate_points(20, 20000)
+    generate_points(20, 1000)
 
-    title = 'Divisive Clustering'
+    title = 'AGGLOMERATIVE'
 
     # final_points, final_centers, precision = k_means(20, points, 10, precision=True)
     # final_points, final_centers, precision = k_medoids(20, points, 10)
     # final_points, final_centers, precision = divisive(20, points)
-    # final_points, final_centers = agglomerative(5, points)
+    final_points, final_centers = agglomerative(5, points)
     t2 = time.time()
 
     visualize_data(final_points, final_centers, title, precision, t2-t1)
