@@ -199,6 +199,22 @@ def calculate_precision(centers, clusters):
     return (correct/all_clusts)*100
 
 
+def find_min(matrix):
+    min_val = 10000
+    x, y = -1, -1
+
+    for i in range(len(matrix)):
+        if not matrix[i]:
+            continue
+
+        _min = min(matrix[i])
+        if _min < min_val:
+            min_val = _min
+            y = i
+            x = matrix[i].index(_min)
+
+    return y, x
+
 ##################### ALGORITHMS #####################
 def k_means(k, points, iter=15, centers = {}, precision = False):
     global clusters
@@ -362,20 +378,74 @@ def divisive(k, points):
 
 
 def agglomerative(k, points):
-    pass
+    global clusters
+    matrix = []
+    centers = []
+
+
+    for point in points:
+        centers.append(point)
+
+    for i in range(len(centers)):
+        matrix.append([])
+        for j in range(i):
+            matrix[i].append(get_dist(centers[i], centers[j]))
+
+    for i, point in enumerate(points):
+        clusters[i] = {}
+        points[point].cid = i
+        clusters[i][point] = points[point]
+
+
+    while len(clusters) > k:
+        min_y, min_x = find_min(matrix)
+
+        cluster_1 = clusters[points[centers[min_x]].cid]
+        cluster_2 = clusters[points[centers[min_y]].cid]
+
+        clust_2_cid = points[centers[min_y]].cid
+
+        for point in cluster_2:
+            cluster_2[point].cid = points[centers[min_x]].cid
+
+        clusters[points[centers[min_x]].cid] = merge_dict(cluster_1, cluster_2)
+
+        for i in range(len(matrix[min_x])):
+            matrix[min_x][i] = get_dist(centers[min_x], centers[i])
+
+        for j in range(min_y + 1, len(matrix)):
+            matrix[j][min_x] = get_dist(centers[min_x], centers[j])
+            del matrix[j][min_y]
+
+        del matrix[min_y]
+        del centers[min_y]
+        clusters.pop(clust_2_cid)
+
+    new_centers = {}
+    for center in centers:
+        new_centers[center] = points[center]
+
+    clusters = assign_colors(clusters)
+
+    precission_value = calculate_precision(new_centers, clusters)
+
+    return points, new_centers, precission_value
 
 
 def main():
     t1 = time.time()
-    generate_points(20, 1000)
+    generate_points(20, 10000)
 
     title = 'AGGLOMERATIVE'
 
     # final_points, final_centers, precision = k_means(20, points, 10, precision=True)
     # final_points, final_centers, precision = k_medoids(20, points, 10)
     # final_points, final_centers, precision = divisive(20, points)
-    final_points, final_centers = agglomerative(5, points)
+
+
+    final_points, final_centers, precision = agglomerative(20, points)
     t2 = time.time()
+
 
     visualize_data(final_points, final_centers, title, precision, t2-t1)
 
